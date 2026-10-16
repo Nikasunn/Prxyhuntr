@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#000000">
+<title>ProxyHunter</title>
+<style>
+:root{--bg:#0e1116;--card:#171c24;--bd:#2b3340;--tx:#e8edf3;--mu:#8e99a8;--ac:#38bdf8;--ok:#34d399;--er:#f87171;--wa:#fbbf24}
+[data-theme=light]{--bg:#f3f5f8;--card:#fff;--bd:#d5dce5;--tx:#18212c;--mu:#5b6877;--ac:#0369a1;--ok:#047857;--er:#b91c1c;--wa:#b45309}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:84px}
+header{display:flex;align-items:center;gap:8px;padding:10px 14px}
+h1{font-size:19px;margin:0;flex:1;letter-spacing:-.3px}h1 span{color:var(--ac)}
+nav{display:flex;gap:4px;padding:6px 10px;overflow-x:auto;position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--bd)}
+nav button{flex:1;min-width:84px;background:none;border:0;color:var(--mu);padding:12px 8px;font:inherit;font-weight:600;border-radius:8px;cursor:pointer}
+nav button.on{background:var(--card);color:var(--ac)}
+main{max-width:1100px;margin:auto;padding:12px}
+.tab{display:none}.tab.on{display:block}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));margin-bottom:10px}
+input,select,textarea,.b{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:10px;min-height:44px}
+input:not([type=checkbox]),select,textarea{width:100%}
+.row>input:not([type=checkbox]),.row>select{flex:1 1 130px;width:auto}
+input[type=checkbox]{width:22px;height:22px;min-height:0;accent-color:var(--ac)}
+label{display:flex;align-items:center;gap:6px}
+.b{cursor:pointer;font-weight:600;background:var(--card)}
+.b.p{background:var(--ac);border-color:var(--ac);color:#04121a}
+.b.er{color:var(--er)}
+.b:focus-visible,input:focus-visible,select:focus-visible,nav button:focus-visible{outline:2px solid var(--ac)}
+.mu{color:var(--mu);font-size:12px}
+.t{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px 10px}
+.t b{display:block;font-size:20px}.t small{color:var(--mu)}
+.bar{height:10px;background:var(--bg);border-radius:6px;overflow:hidden;border:1px solid var(--bd)}
+.bar i{display:block;height:100%;background:var(--ac);width:0;transition:width .2s}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px;border-bottom:1px solid var(--bd);text-align:left;white-space:nowrap}
+th{color:var(--mu);cursor:pointer;user-select:none}th[data-a]::after{content:attr(data-a);color:var(--ac)}
+.live{color:var(--ok)}.dead{color:var(--er)}.pending,.running{color:var(--wa)}
+pre{overflow:auto;background:var(--bg);padding:10px;border-radius:8px;font-size:12px;max-height:300px}
+details summary{cursor:pointer;font-weight:600;padding:6px 0}
+#log{max-height:200px;overflow:auto;font:12px monospace;color:var(--mu);white-space:pre-wrap}
+#act{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--card);border-top:1px solid var(--bd);padding:8px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+#act .b{flex:0 0 auto;min-width:56px}#mini{flex:1;min-width:140px;font-size:13px}
+#toasts{position:fixed;top:10px;right:10px;left:10px;max-width:360px;margin-left:auto;z-index:99;display:flex;flex-direction:column;gap:6px}
+.toast{background:var(--card);border:1px solid var(--bd);border-left:4px solid var(--ac);padding:10px 12px;border-radius:8px}
+.toast.er{border-left-color:var(--er)}.toast.ok{border-left-color:var(--ok)}
+.src .row:last-child{margin:0}
+@media(min-width:800px){#act{padding-left:max(12px,calc((100% - 1076px)/2))}}
+small{color:var(--mu);font-weight:400;font-size:12px;margin-left:8px}
+.card{border-radius:14px}.src:hover{border-color:var(--ac)}.src input.nm{font-weight:600}
+.hero{background:linear-gradient(135deg,color-mix(in srgb,var(--ac) 14%,var(--card)),var(--card))}
+.steps{display:grid;gap:8px;margin:8px 0 12px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+.steps span{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px}
+.chip{border:1px solid var(--bd);background:var(--bg);color:var(--mu);border-radius:999px;padding:8px 14px;min-height:40px;font:inherit;font-weight:600;cursor:pointer}
+.chip.on{background:var(--ac);border-color:var(--ac);color:#04121a}
+.b.ok{background:var(--ok);border-color:var(--ok);color:#04130c}
+#pills{display:flex;flex-wrap:wrap;gap:4px}.pill{border:1px solid var(--bd);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600}.pill.live{color:var(--ok)}
+.tb{border-radius:6px;padding:2px 8px;font-size:12px;font-weight:600;background:var(--bg);border:1px solid var(--bd)}
+.tb.http{color:#60a5fa}.tb.https{color:#34d399}.tb.socks4{color:#fbbf24}.tb.socks5{color:#f472b6}
+.empty{text-align:center;color:var(--mu);padding:28px 12px}
+@media(min-width:900px){#srcs{display:grid;grid-template-columns:1fr 1fr;gap:12px}#srcs .card{margin:0}}
+.chip.part{border-style:dashed;color:var(--ac)}
+.mrow{display:flex;align-items:center;gap:10px;margin:10px 0}.mrow .bar{flex:1}.mrow>.tb{min-width:64px;text-align:center}
+.grid2{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));margin-bottom:12px}.grid2 .card{margin:0}
+#dtiles{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}#dtiles .t{padding:14px}#dtiles .t b{font-size:28px}
+/* ===== Apple-dark x Nothing theme ===== */
+:root{--bg:#000;--card:#111113;--fill:#1c1c1f;--bd:#2a2a2e;--tx:#f5f5f7;--mu:#8e8e93;--ac:#ff2d2d;--ok:#30d158;--er:#ff453a;--wa:#ff9f0a;--pri:#f5f5f7;--pritx:#000;--glass:rgba(17,17,19,.72);--dot:rgba(255,255,255,.075);--r:22px;
+--sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Inter","Segoe UI",Roboto,system-ui,sans-serif;--mono:ui-monospace,"SF Mono","Space Mono","JetBrains Mono",Menlo,Consolas,monospace}
+[data-theme=light]{--bg:#f2f2f7;--card:#fff;--fill:#ececf1;--bd:#dcdce2;--tx:#1c1c1e;--mu:#6e6e73;--ac:#d71921;--ok:#248a3d;--er:#d70015;--wa:#b25000;--pri:#1c1c1e;--pritx:#fff;--glass:rgba(255,255,255,.78);--dot:rgba(0,0,0,.07)}
+body{font-family:var(--sans);background-image:radial-gradient(var(--dot) 1px,transparent 1.2px);background-size:20px 20px;background-attachment:fixed;-webkit-font-smoothing:antialiased;letter-spacing:-.01em}
+::selection{background:var(--ac);color:#fff}
+header{padding:14px 18px 6px}
+h1{font-family:var(--mono);font-size:18px;font-weight:700;letter-spacing:-.04em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+h1::before{content:"";width:11px;height:11px;border-radius:50%;background:var(--ac);box-shadow:0 0 12px var(--ac)}
+h1 small{font-family:var(--mono)}
+nav{margin:8px 10px;padding:4px;gap:2px;top:8px;border:1px solid var(--bd);border-radius:999px;background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%)}
+nav button{border-radius:999px;min-width:96px;transition:background .15s,color .15s}
+nav button.on{background:var(--pri);color:var(--pritx)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:16px}
+input,select,textarea,.b{background:var(--fill);border:1px solid transparent;border-radius:14px}
+input:focus-visible,select:focus-visible,textarea:focus-visible{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px color-mix(in srgb,var(--ac) 25%,transparent)}
+.b{border-radius:999px;padding:10px 18px;transition:transform .1s,filter .15s}.b:hover{filter:brightness(1.15)}.b:active{transform:scale(.97)}
+.b.p{background:var(--pri);color:var(--pritx)}
+.b.er{background:color-mix(in srgb,var(--er) 16%,var(--fill));color:var(--er)}
+.b.ok{background:var(--ok);color:#00130a}
+.chip{background:var(--fill);border-color:transparent;font-family:var(--mono);font-size:12.5px}
+.chip.on{background:var(--pri);color:var(--pritx);border-color:transparent}
+.chip.part{border:1px dashed var(--mu);color:var(--tx)}
+.t,.steps span{background:var(--fill);border:0;border-radius:18px}
+.t small,th,#mini,#log,.pill,.tb,td,pre{font-family:var(--mono)}
+.t b{font-family:var(--mono);font-size:24px;font-weight:800;line-height:1.15;background:radial-gradient(circle,currentColor 0 1px,transparent 1.3px) 0 0/2.8px 2.8px;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#dtiles .t b{font-size:34px}
+.bar{height:8px;border:0;background:var(--fill)}
+.bar i{background:repeating-linear-gradient(90deg,var(--ac) 0 4px,transparent 4px 7px)}
+table{border-collapse:separate;border-spacing:0}
+th{font-weight:500;font-size:12px;border-bottom:1px solid var(--bd)}
+td{font-size:12.5px}
+tbody tr:hover td{background:var(--fill)}
+.tb,.pill{border:0;border-radius:999px;background:var(--fill)}
+.tb.http{color:#0a84ff}.tb.https{color:#30d158}.tb.socks4{color:#ff9f0a}.tb.socks5{color:#bf5af2}
+#act{background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border-top:1px solid var(--bd);border-radius:22px 22px 0 0;padding:10px 14px max(10px,env(safe-area-inset-bottom))}
+#mini{color:var(--mu);font-size:12px}
+.toast{background:var(--glass);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid var(--bd);border-left:3px solid var(--ac);border-radius:16px}
+pre{background:var(--fill);border-radius:14px}
+.src:hover{border-color:var(--mu)}
+.hero{background:var(--card);position:relative;overflow:hidden}
+.hero>*{position:relative;z-index:1}
+.hero::after{content:"";position:absolute;right:-24px;top:-24px;width:190px;height:190px;z-index:0;pointer-events:none;opacity:.8;background:radial-gradient(var(--ac) 1.3px,transparent 1.7px) 0 0/10px 10px;-webkit-mask:radial-gradient(circle,#000,transparent 70%);mask:radial-gradient(circle,#000,transparent 70%)}
+#dphase{font-size:26px!important;font-weight:700;letter-spacing:-.03em}
+.b:disabled{opacity:.4;cursor:default;filter:none}
+.mrow{flex-wrap:wrap}.mrow .bar{flex:1 1 80px}.mrow>.tb{min-width:80px}.mrow .xt{padding:8px 14px;min-height:38px;flex:0 0 auto}
+.tb.all{color:var(--tx)}
+</style>
+</head>
+<body>
+<header><h1>Proxy<span>Hunter</span><small>scrape · check · export</small></h1><div id="pills"></div><button class="b" id="theme" title="Toggle theme">◐</button></header>
+<nav id="nav"><button data-t="dashboard" class="on">📊 Dashboard</button><button data-t="sources">📚 Sources</button><button data-t="scraper">🕸 Scraper</button><button data-t="checker">✔ Checker</button><button data-t="results">📋 Results</button><button data-t="settings">⚙ Settings</button></nav>
+<main>
+<!-- DASHBOARD -->
+<section class="tab on" id="t-dashboard">
+<div class="card hero"><div class="row" style="justify-content:space-between"><div><b id="dphase" style="font-size:20px"></b><div class="mu" id="dsub"></div></div>
+<div class="row" style="margin:0"><button class="b p" id="dgo">▶ Start</button><button class="b" id="dpause">⏸ Pause / Resume</button><button class="b er" id="dstop">⏹ Stop</button></div></div>
+<div class="bar" style="height:14px"><i id="dpb"></i></div></div>
+<div class="grid" id="dtiles"></div>
+<div class="grid2"><div class="card"><b>Export by proxy type</b><div class="mu">Live rate per type — export or copy just the type you need.</div>
+<div class="row" style="margin:10px 0"><label class="t" style="flex:1 1 140px">How many? (0 = all)<input type="number" data-s="exN" min="0" max="1000000"></label><label class="t" style="flex:1 1 140px">Pick<select data-s="exOrder"><option value="fast">Fastest first</option><option value="rand">Random</option><option value="none">As found</option></select></label></div>
+<div class="row" id="nchips"><button class="chip" data-n="10">10</button><button class="chip" data-n="50">50</button><button class="chip" data-n="100">100</button><button class="chip" data-n="500">500</button><button class="chip" data-n="0">All</button></div>
+<div id="dtype"></div></div><div class="card"><b>Source health</b><div id="dsrc"></div></div></div>
+<div class="card"><b>Fastest live proxies</b><div class="tw"><table><tbody id="dtop"></tbody></table></div>
+<div class="row" style="margin:10px 0 0"><button class="b ok" id="dx">⬇ Export live (.txt)</button><button class="b" id="dc">📋 Copy live</button></div></div>
+</section>
+<!-- SOURCES -->
+<section class="tab" id="t-sources">
+<div class="card hero"><b>Get started in 3 steps</b><div class="steps"><span>① Pick proxy types for all sources with one click</span><span>② Press <b>▶ Start</b> — it scrapes, then checks</span><span>③ Press <b>⬇ Export live</b> to save a .txt</span></div>
+<div class="row"><b>Proxy types:</b><span id="bulk" class="row" style="margin:0"></span></div>
+<div class="row" style="margin:0"><input id="sq" type="text" placeholder="🔍 Search sources…"><button class="b" id="son">Enable all</button><button class="b" id="soff">Disable all</button><span class="mu" id="scount"></span></div></div>
+<div class="card"><div class="row">
+<button class="b p" id="sadd">+ Add source</button><button class="b" id="ssall">Select all</button><button class="b" id="ssnone">Select none</button>
+<button class="b" id="sexp">Export JSON</button><button class="b" id="simp">Import JSON</button><button class="b" id="sfail" title="Delete sources that failed in the last scrape">Remove failed</button><button class="b er" id="srst">Reset defaults</button>
+<input type="file" id="sfile" accept=".json" hidden></div>
+<div class="mu">Formats: <b>text</b> = ip:port lines · <b>json</b> = field path to the array (e.g. <code>data</code>; items are "ip:port" strings or objects with ip/port) · <b>html</b> = optional regex with 2 groups (ip, port). Checked boxes = “Scrape Selected”. A source can have several proxy types (each ip:port is tested as each); a <code>socks5://</code> prefix inside a list overrides them. Some public lists may be offline — see the Scraper tab for per-source status.</div></div>
+<div id="srcs"></div>
+</section>
+<!-- SCRAPER -->
+<section class="tab" id="t-scraper">
+<div class="card"><div class="row"><button class="b p" id="sall">Scrape All</button><button class="b" id="ssel">Scrape Selected</button><b id="stot" style="margin-left:auto"></b></div>
+<div class="tw"><table><thead><tr><th>Source</th><th>Status</th><th>Found</th><th>New</th><th>ms</th></tr></thead><tbody id="sst"></tbody></table></div></div>
+<div class="card"><b>Activity log</b><div id="log"></div></div>
+</section>
+<!-- CHECKER -->
+<section class="tab" id="t-checker">
+<div class="card">
+<div class="grid">
+<label class="t">Concurrency (10–500)<input type="number" data-s="cConc" min="10" max="500"></label>
+<label class="t">Timeout s (1–30)<input type="number" data-s="cTO" min="1" max="30"></label>
+<label class="t">Auto repeat (min)<input type="number" data-s="auto" min="1" max="1440"></label>
+</div>
+<div class="row"><input type="text" data-s="endpoint" placeholder="Checker endpoint, e.g. https://checker.you.workers.dev/"><label><input type="checkbox" data-s="demo"> Demo / simulate mode</label></div>
+<div class="row"><button class="b p" id="cgo">Check pending</button><button class="b" id="call">Re-check all</button><button class="b" id="cpause">Pause</button><button class="b er" id="cstop">Stop</button><button class="b" id="autob">Auto: off</button></div>
+<div class="bar"><i id="pb"></i></div></div>
+<div class="grid" id="stats"></div>
+<div class="card"><div class="mu">⚠ Browsers cannot open connections through a proxy, so live-checking needs a <b>checker endpoint</b> — a small API you host that tests <code>?proxy=ip:port&amp;type=http</code> and returns <code>{"alive":true,"latency":420,"country":"US","anonymity":"elite"}</code>. To use a different format, edit <code>CHECK_ADAPTER()</code> in this file. Demo mode produces fake results for testing the UI only.</div>
+<details><summary>Setup checker (Cloudflare Worker example)</summary>
+<button class="b" id="cpw">Copy code</button>
+<pre id="wk">import { connect } from 'cloudflare:sockets';
+export default { async fetch(req) {
+  const u = new URL(req.url), p = u.searchParams.get('proxy'), t = u.searchParams.get('type') || 'http';
+  const out = o => new Response(JSON.stringify(o), { headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' } });
+  if (!p) return out({ alive: false });
+  const [host, port] = p.split(':'), t0 = Date.now();
+  try {
+    const s = connect({ hostname: host, port: +port }), w = s.writable.getWriter(), r = s.readable.getReader();
+    const to = new Promise((_, j) => setTimeout(() => j('timeout'), +u.searchParams.get('timeout') || 8000));
+    const run = (async () => {
+      if (t === 'socks5') await w.write(new Uint8Array([5, 1, 0]));
+      else if (t === 'socks4') await w.write(new Uint8Array([4, 1, 0, 80, 93, 184, 216, 34, 0]));
+      else await w.write(new TextEncoder().encode('GET http://example.com/ HTTP/1.1\r\nHost: example.com\r\nConnection: close\r\n\r\n'));
+      const { value } = await r.read();
+      return t === 'socks5' ? value[0] === 5 : t === 'socks4' ? value[1] === 90 : new TextDecoder().decode(value).startsWith('HTTP/');
+    })();
+    const alive = await Promise.race([run, to]);
+    try { s.close(); } catch (e) {}
+    return out({ alive, latency: Date.now() - t0, country: req.cf?.country || '' });
+  } catch (e) { return out({ alive: false }); }
+} };</pre></details></div>
+</section>
+<!-- RESULTS -->
+<section class="tab" id="t-results">
+<div class="card">
+<div class="row"><input type="text" id="q" placeholder="Search ip, port, country, source…">
+<select id="ft"><option value="">All types</option><option>http</option><option>https</option><option>socks4</option><option>socks5</option></select>
+<select id="fs"><option value="">All status</option><option>live</option><option>dead</option><option>pending</option></select>
+<input type="number" id="fl" placeholder="Max latency ms" min="0"></div>
+<div class="row"><button class="b" id="selv">Select filtered</button><button class="b" id="seln">Clear selection</button><button class="b er" id="delsel">Delete selected</button><button class="b" id="deldead">Remove dead</button><button class="b" id="deldup">Remove duplicates</button>
+<input type="number" id="kn" value="100" min="1" style="max-width:90px"><button class="b" id="keepn">Keep fastest N</button></div>
+<div class="tw"><table><thead><tr id="th"><th><input type="checkbox" id="sp" title="Select page"></th><th data-k="ip">IP</th><th data-k="port">Port</th><th data-k="type">Type</th><th data-k="st">Status</th><th data-k="lat">Latency</th><th data-k="cc">Country</th><th data-k="anon">Anon</th><th data-k="src">Source</th></tr></thead><tbody id="tb"></tbody></table></div>
+<div class="row" style="margin:10px 0 0"><button class="b" id="pv">‹ Prev</button><span id="pg" class="mu" style="flex:1;text-align:center"></span><button class="b" id="nx">Next ›</button></div></div>
+<div class="card"><b>Export / copy</b> <span class="mu">· count &amp; order are set on the Dashboard (“How many?”)</span><div class="row" style="margin-top:8px">
+<select id="xs"><option value="live">Live only</option><option value="all">All</option><option value="sel">Selected</option></select>
+<label><input type="checkbox" id="xp"> Protocol prefix</label><label><input type="checkbox" id="xsep"> One file per type</label></div>
+<div class="row"><button class="b p" id="xdl">Download .txt</button><button class="b" id="xcp">Copy to clipboard</button></div></div>
+<details class="card"><summary>Import proxies to check</summary>
+<textarea id="imp" rows="5" placeholder="ip:port or socks5://ip:port, one per line"></textarea>
+<div class="row" style="margin-top:8px"><select id="it"><option>http</option><option>https</option><option>socks4</option><option>socks5</option></select><button class="b p" id="impb">Add pasted</button><button class="b" id="impf">Load .txt file</button><input type="file" id="ifile" accept=".txt,text/plain" hidden></div></details>
+</section>
+<!-- SETTINGS -->
+<section class="tab" id="t-settings">
+<div class="card"><b>Scraping</b>
+<div class="grid" style="margin-top:8px"><label class="t">Parallel fetches<input type="number" data-s="sConc" min="1" max="50"></label><label class="t">Fetch timeout (s)<input type="number" data-s="sTO" min="2" max="60"></label><label class="t">Table page size<input type="number" data-s="page" min="25" max="1000"></label></div>
+<div class="row"><label><input type="checkbox" data-s="cors"> Use CORS proxy fallback</label><input type="text" data-s="corsUrl" placeholder="https://corsproxy.io/?{url}"></div>
+<div class="mu">Requests go only to your sources, the CORS proxy (if enabled) and your checker endpoint. No tracking, no analytics. Settings live in localStorage.</div></div>
+<div class="card"><button class="b er" id="wipe">Clear all proxies</button></div>
+</section>
+</main>
+<div id="act"><button class="b p" id="go" title="Scrape, then check (Ctrl+Enter)">▶ Start</button><button class="b" id="apause" title="Pause / resume">⏸</button><button class="b er" id="astop" title="Stop">⏹</button><button class="b ok" id="qx" title="Download live proxies as .txt">⬇ Export live</button><button class="b" id="qc" title="Copy live proxies">📋 Copy</button><div id="mini"></div></div>
+<div id="toasts"></div>
+<script>
+'use strict';
+/* ============ HELPERS ============ */
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const TYPES=['http','https','socks4','socks5'];
+const uid=()=>'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function toast(m,t=''){const d=document.createElement('div');d.className='toast '+t;d.textContent=m;$('#toasts').append(d);setTimeout(()=>d.remove(),3500)}
+function dl(name,text){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1e3)}
+
+/* ============ STATE ============ */
+const DEF_SET={cors:false,corsUrl:'https://corsproxy.io/?{url}',sConc:8,sTO:15,cConc:100,cTO:8,endpoint:'',demo:true,page:100,auto:10,exN:0,exOrder:'fast',theme:'dark'};
+function defSources(){
+  const R='https://raw.githubusercontent.com/',o=[],T3=['http','socks4','socks5'],mk=(name,url,types,fmt='text',path='')=>o.push({id:uid(),name,url,types,fmt,path,on:true});
+  const L=[['TheSpeedX','TheSpeedX/PROXY-List/master/{t}.txt'],['monosans','monosans/proxy-list/main/proxies/{t}.txt'],['MuRongPIG','MuRongPIG/Proxy-Master/main/{t}.txt'],['prxchk','prxchk/proxy-list/main/{t}.txt'],['vakhov','vakhov/fresh-proxy-list/master/{t}.txt'],['zloi-user','zloi-user/hideip.me/main/{t}.txt'],['sunny9577','sunny9577/proxy-scraper/master/generated/{t}_proxies.txt'],['jetkai','jetkai/proxy-list/main/online-proxies/txt/proxies-{t}.txt'],['ShiftyTR','ShiftyTR/Proxy-List/master/{t}.txt']];
+  for(const [n,u] of L)for(const t of T3)mk(n+' '+t,R+u.replace('{t}',t),[t]);
+  for(const t of T3)mk('ProxyScrape '+t,'https://api.proxyscrape.com/v2/?request=getproxies&protocol='+t+'&timeout=10000&country=all',[t]);
+  for(const t of TYPES)mk('proxy-list.download '+t,'https://www.proxy-list.download/api/v1/get?type='+t,[t]);
+  for(const t of T3)mk('openproxylist.xyz '+t,'https://openproxylist.xyz/'+t+'.txt',[t]);
+  mk('Geonode (mixed types)','https://proxylist.geonode.com/api/proxy-list?limit=500&page=1&sort_by=lastChecked&sort_type=desc',['http'],'json','data');
+  mk('Proxifly (mixed types)',R+'proxifly/free-proxy-list/main/proxies/all/data.txt',['http']);
+  mk('clarketm',R+'clarketm/proxy-list/master/proxy-list-raw.txt',['http','https']);
+  mk('hookzof socks5',R+'hookzof/socks5_list/master/proxy.txt',['socks5']);
+  mk('roosterkid https',R+'roosterkid/openproxylist/main/HTTPS_RAW.txt',['https']);
+  mk('roosterkid socks4',R+'roosterkid/openproxylist/main/SOCKS4_RAW.txt',['socks4']);
+  mk('roosterkid socks5',R+'roosterkid/openproxylist/main/SOCKS5_RAW.txt',['socks5']);
+  mk('spys.me http','https://spys.me/proxy.txt',['http']);
+  mk('spys.me socks','https://spys.me/socks.txt',['socks5']);
+  mk('free-proxy-list.net','https://free-proxy-list.net/',['http','https'],'html');
+  mk('sslproxies.org','https://www.sslproxies.org/',['https'],'html');
+  mk('us-proxy.org','https://www.us-proxy.org/',['http','https'],'html');
+  mk('socks-proxy.net','https://www.socks-proxy.net/',['socks4','socks5'],'html');
+  for(const [n,p,t] of [['iplocate','iplocate/free-proxy-list/main/protocols/http.txt','http'],['iplocate','iplocate/free-proxy-list/main/protocols/https.txt','https'],['iplocate','iplocate/free-proxy-list/main/protocols/socks4.txt','socks4'],['iplocate','iplocate/free-proxy-list/main/protocols/socks5.txt','socks5'],['ErcinDedeoglu','ErcinDedeoglu/proxies/main/proxies/http.txt','http'],['ErcinDedeoglu','ErcinDedeoglu/proxies/main/proxies/https.txt','https'],['ErcinDedeoglu','ErcinDedeoglu/proxies/main/proxies/socks4.txt','socks4'],['ErcinDedeoglu','ErcinDedeoglu/proxies/main/proxies/socks5.txt','socks5'],['Zaeem20','Zaeem20/FREE_PROXIES_LIST/master/http.txt','http'],['Zaeem20','Zaeem20/FREE_PROXIES_LIST/master/https.txt','https'],['Zaeem20','Zaeem20/FREE_PROXIES_LIST/master/socks4.txt','socks4'],['Zaeem20','Zaeem20/FREE_PROXIES_LIST/master/socks5.txt','socks5'],['ALIILAPRO','ALIILAPRO/Proxy/main/http.txt','http'],['ALIILAPRO','ALIILAPRO/Proxy/main/socks4.txt','socks4'],['ALIILAPRO','ALIILAPRO/Proxy/main/socks5.txt','socks5'],['Anonym0us','Anonym0usWork1221/Free-Proxies/main/proxy_files/http_proxies.txt','http'],['Anonym0us','Anonym0usWork1221/Free-Proxies/main/proxy_files/https_proxies.txt','https'],['Anonym0us','Anonym0usWork1221/Free-Proxies/main/proxy_files/socks4_proxies.txt','socks4'],['Anonym0us','Anonym0usWork1221/Free-Proxies/main/proxy_files/socks5_proxies.txt','socks5'],['mmpx12','mmpx12/proxy-list/master/http.txt','http'],['mmpx12','mmpx12/proxy-list/master/https.txt','https'],['mmpx12','mmpx12/proxy-list/master/socks4.txt','socks4'],['mmpx12','mmpx12/proxy-list/master/socks5.txt','socks5'],['rdavydov','rdavydov/proxy-list/main/proxies/http.txt','http'],['rdavydov','rdavydov/proxy-list/main/proxies/socks4.txt','socks4'],['rdavydov','rdavydov/proxy-list/main/proxies/socks5.txt','socks5'],['TuanMinPay','TuanMinPay/live-proxy/master/http.txt','http'],['TuanMinPay','TuanMinPay/live-proxy/master/socks4.txt','socks4'],['TuanMinPay','TuanMinPay/live-proxy/master/socks5.txt','socks5'],['dpangestuw','dpangestuw/Free-Proxy/main/http_proxies.txt','http'],['dpangestuw','dpangestuw/Free-Proxy/main/socks4_proxies.txt','socks4'],['dpangestuw','dpangestuw/Free-Proxy/main/socks5_proxies.txt','socks5'],['Vann-Dev','Vann-Dev/proxy-list/main/proxies/http.txt','http'],['Vann-Dev','Vann-Dev/proxy-list/main/proxies/https.txt','https'],['Vann-Dev','Vann-Dev/proxy-list/main/proxies/socks4.txt','socks4'],['Vann-Dev','Vann-Dev/proxy-list/main/proxies/socks5.txt','socks5'],['ObcbO','ObcbO/getproxy/master/file/http.txt','http'],['ObcbO','ObcbO/getproxy/master/file/https.txt','https'],['ObcbO','ObcbO/getproxy/master/file/socks4.txt','socks4'],['ObcbO','ObcbO/getproxy/master/file/socks5.txt','socks5'],['vmheaven','vmheaven/VMHeaven-Free-Proxy-Updated/main/http.txt','http'],['vmheaven','vmheaven/VMHeaven-Free-Proxy-Updated/main/https.txt','https'],['vmheaven','vmheaven/VMHeaven-Free-Proxy-Updated/main/socks4.txt','socks4'],['vmheaven','vmheaven/VMHeaven-Free-Proxy-Updated/main/socks5.txt','socks5'],['databay','databay-labs/free-proxy-list/master/http.txt','http'],['databay','databay-labs/free-proxy-list/master/https.txt','https'],['databay','databay-labs/free-proxy-list/master/socks5.txt','socks5'],['proxifly','proxifly/free-proxy-list/main/proxies/protocols/http/data.txt','http'],['proxifly','proxifly/free-proxy-list/main/proxies/protocols/socks4/data.txt','socks4'],['proxifly','proxifly/free-proxy-list/main/proxies/protocols/socks5/data.txt','socks5'],['im-razvan','im-razvan/proxy_list/main/http.txt','http'],['im-razvan','im-razvan/proxy_list/main/socks5.txt','socks5'],['a2u','a2u/free-proxy-list/master/free-proxy-list.txt','http'],['hendrikbgr','hendrikbgr/Free-Proxy-Repo/master/proxy_list.txt','http'],['opsxcq','opsxcq/proxy-list/master/list.txt','http'],['almroot','almroot/proxylist/master/list.txt','http'],['stormsia','stormsia/proxy-list/main/working_proxies.txt','http'],['proxy4parsing','proxy4parsing/proxy-list/main/http.txt','http'],['B4RC0DE','B4RC0DE-TM/proxy-list/main/HTTP.txt','http'],['B4RC0DE','B4RC0DE-TM/proxy-list/main/SOCKS4.txt','socks4'],['B4RC0DE','B4RC0DE-TM/proxy-list/main/SOCKS5.txt','socks5'],['r00tee','r00tee/Proxy-List/main/Https.txt','https'],['elliottophellia','elliottophellia/proxylist/master/results/http/global/http_checked.txt','http'],['elliottophellia','elliottophellia/proxylist/master/results/socks4/global/socks4_checked.txt','socks4'],['elliottophellia','elliottophellia/proxylist/master/results/socks5/global/socks5_checked.txt','socks5']])mk(n+' '+t,R+p,[t]);
+  for(const t of T3)mk('ProxyScrape v3 '+t,'https://api.proxyscrape.com/v3/free-proxy-list/get?request=displayproxies&protocol='+t+'&proxy_format=ipport&format=text&timeout=10000',[t]);
+  mk('ProxyScrape https (ssl)','https://api.proxyscrape.com/v2/?request=getproxies&protocol=http&timeout=10000&country=all&ssl=yes&anonymity=elite',['https']);
+  mk('proxy-list.download http elite','https://www.proxy-list.download/api/v1/get?type=http&anon=elite',['http']);
+  mk('Geonode page 2','https://proxylist.geonode.com/api/proxy-list?limit=500&page=2&sort_by=lastChecked&sort_type=desc',['http'],'json','data');
+  for(const t of TYPES)mk('proxyspace.pro '+t,'https://proxyspace.pro/'+t+'.txt',[t]);
+  mk('multiproxy.org','https://multiproxy.org/txt_all/proxy.txt',['http']);
+  mk('rootjazz.com','https://rootjazz.com/proxies/proxies.txt',['http']);
+  mk('my-proxy.com http','https://www.my-proxy.com/free-proxy-list.html',['http']);
+  mk('my-proxy.com socks4','https://www.my-proxy.com/free-socks-4-proxy.html',['socks4']);
+  mk('my-proxy.com socks5','https://www.my-proxy.com/free-socks-5-proxy.html',['socks5']);
+  mk('free-proxy-list.net anonymous','https://free-proxy-list.net/anonymous-proxy.html',['http','https'],'html');
+  return o.filter(s=>!/generated\/socks4_/.test(s.url));
+}
+const S={sources:null,set:null,proxies:[],keys:new Set(),sel:new Set(),srcSel:new Set(),status:{},logs:[],sort:{k:'lat',d:1},page:0,tab:'dashboard'};
+let nid=0,halt=false,ck={run:false,pause:false,done:0,total:0,t0:0};
+
+/* ============ STORAGE ============ */
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
+function save(){try{localStorage.setItem('ph_sources2',JSON.stringify(S.sources));localStorage.setItem('ph_set',JSON.stringify(S.set))}catch(e){toast('Could not save to localStorage','er')}}
+S.sources=load('ph_sources2',null)||defSources();
+const normTypes=x=>{const a=(Array.isArray(x.types)?x.types:[x.type]).filter(t=>TYPES.includes(t));return a.length?a:['http']};
+S.sources.forEach(s=>s.types=normTypes(s));
+S.set={...DEF_SET,...load('ph_set',{})};
+{const seen=new Set(load('ph_seen',[]));let added=0;for(const d of defSources())if(!seen.has(d.url)){seen.add(d.url);if(!S.sources.some(x=>x.url===d.url)){S.sources.push(d);added++}}
+ try{localStorage.setItem('ph_seen',JSON.stringify([...seen]))}catch{}if(added)save()}
+function log(m){S.logs.unshift(new Date().toLocaleTimeString()+'  '+m);S.logs.length=Math.min(S.logs.length,200);dirty()}
+
+/* ============ SCRAPER ============ */
+const IPP=/(?:\b(https?|socks[45]):\/\/)?\b((?:\d{1,3}\.){3}\d{1,3}):(\d{1,5})\b/g;
+const validIP=s=>s.split('.').every(o=>+o<=255&&String(+o)===o);
+const keyOf=p=>p.ip+':'+p.port+':'+p.type;
+
+/** Turn raw source text into [[ip,port],...] according to the source format. Throws on bad JSON. */
+function parse(src,text){
+  let rx=IPP;
+  if(src.fmt==='json'){
+    let j=JSON.parse(text);for(const k of (src.path||'').split('.').filter(Boolean))j=j?.[k];
+    text=(Array.isArray(j)?j:[j]).map(x=>x&&typeof x==='object'?(x.protocols?.[0]?x.protocols[0]+'://':'')+(x.ip||x.host||x.address)+':'+x.port:String(x)).join('\n');
+  }else if(src.fmt==='html'){
+    text=text.replace(/<\/td>\s*<td[^>]*>/gi,':').replace(/<[^>]+>/g,' ');
+    if(src.path)try{rx=new RegExp(src.path,'g')}catch{}
+  }
+  const out=[],cu=rx!==IPP;for(const m of text.matchAll(rx)){const ip=cu?m[1]:m[2],pt=cu?m[2]:m[3];if(validIP(ip)&&+pt>0&&+pt<65536)out.push([ip,+pt,cu?'':m[1]||''])}
+  return out;
+}
+/** Add proxies, skipping duplicates (ip:port:type). Returns count added. */
+function addProxies(list,types,srcName){
+  let n=0;for(const [ip,port,hint] of list)for(const type of hint?[hint]:types){const p={id:++nid,ip,port,type,st:'pending',lat:null,cc:'',anon:'',src:srcName},k=keyOf(p);if(S.keys.has(k))continue;S.keys.add(k);S.proxies.push(p);n++}
+  return n;
+}
+async function fetchText(url,to){
+  const go=async u=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),to*1000);try{const r=await fetch(u,{signal:c.signal,cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);return await r.text()}finally{clearTimeout(t)}};
+  try{return await go(url)}catch(e){
+    if(S.set.cors&&S.set.corsUrl){log('Retry via CORS proxy: '+url);return go(S.set.corsUrl.replace('{url}',encodeURIComponent(url)))}
+    throw e;
+  }
+}
+async function pool(items,n,fn){let i=0;await Promise.all(Array.from({length:Math.min(n,items.length)},async()=>{while(i<items.length&&!halt)await fn(items[i++])}))}
+let scraping=false;
+async function scrape(list){
+  if(scraping)return;if(!list.length)return toast('No sources to scrape','er');
+  scraping=true;list.forEach(s=>S.status[s.id]={st:'pending'});log('Scraping '+list.length+' sources…');dirty();
+  await pool(list,S.set.sConc,async s=>{
+    const t0=performance.now();S.status[s.id]={st:'running'};dirty();
+    try{const found=parse(s,await fetchText(s.url,S.set.sTO));S.status[s.id]={st:'ok',n:found.length,add:addProxies(found,s.types,s.name),ms:Math.round(performance.now()-t0)}}
+    catch(e){S.status[s.id]={st:'fail',err:e.name==='AbortError'?'timeout':e.message,ms:Math.round(performance.now()-t0)};log('✗ '+s.name+': '+e.message)}
+    dirty();
+  });
+  scraping=false;log('Scrape finished — '+S.proxies.length+' unique proxies');toast('Scrape finished: '+S.proxies.length+' proxies','ok');render();
+}
+
+/* ============ CHECKER ============ */
+/* ===== CHECK_ADAPTER: change this one function to match your own checker API =====
+   Must resolve {alive:bool, latency:ms, country?:'US', anon?:'elite'|'anonymous'|'transparent'} */
+async function CHECK_ADAPTER(p,s){
+  const to=s.cTO*1000;
+  if(s.demo){const d=100+Math.random()*Math.min(to,3000);await sleep(d);return{alive:Math.random()<.2&&d<to,latency:d,country:pick(['US','DE','FR','NL','BR','IN','RU','SG']),anon:pick(['elite','anonymous','transparent'])}}
+  const u=s.endpoint+(s.endpoint.includes('?')?'&':'?')+'proxy='+p.ip+':'+p.port+'&type='+p.type+'&timeout='+to;
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),to+3000),t0=performance.now();
+  try{const j=await(await fetch(u,{signal:c.signal})).json();return{alive:!!j.alive,latency:j.latency??performance.now()-t0,country:j.country,anon:j.anonymity||j.anon}}
+  finally{clearTimeout(t)}
+}
+async function checkOne(p){
+  try{const r=await CHECK_ADAPTER(p,S.set);p.st=r.alive?'live':'dead';p.lat=r.alive?Math.round(r.latency):null;p.cc=r.country||'';p.anon=r.anon||''}
+  catch{p.st='dead';p.lat=null}
+}
+/** Worker pool: 500 workers max; worker n only works while n < current concurrency setting (adjustable live). */
+async function check(all){
+  if(ck.run)return;
+  if(!S.set.demo&&!S.set.endpoint)return toast('Set a checker endpoint or enable demo mode','er');
+  const q=S.proxies.filter(p=>all||p.st==='pending');if(!q.length)return toast('Nothing to check','er');
+  if(all)q.forEach(p=>{p.st='pending';p.lat=null});
+  ck={run:true,pause:false,done:0,total:q.length,t0:performance.now()};let i=0;log('Checking '+q.length+' proxies…');
+  const worker=async n=>{while(!halt&&i<q.length){if(n>=S.set.cConc||ck.pause){await sleep(150);continue}await checkOne(q[i++]);ck.done++;dirty()}};
+  await Promise.all(Array.from({length:500},(_,n)=>worker(n)));
+  ck.run=false;log('Check finished: '+ck.done+'/'+ck.total);render();
+}
+async function startAll(){halt=false;await scrape(S.sources.filter(s=>s.on));if(!halt)await check(false)}
+function stopAll(){halt=true;autoOn=false;ck.pause=false;$('#autob').textContent='Auto: off';toast('Stopped')}
+function togglePause(){if(!ck.run)return;ck.pause=!ck.pause;$('#cpause').textContent=ck.pause?'Resume':'Pause';render()}
+let autoOn=false;
+async function autoLoop(){while(autoOn){halt=false;await scrape(S.sources.filter(s=>s.on));if(!autoOn)break;await check(false);for(let i=0;i<S.set.auto*60&&autoOn;i++)await sleep(1000)}}
+
+/* ============ RESULTS HELPERS ============ */
+function removeIds(ids){S.proxies=S.proxies.filter(p=>!ids.has(p.id));S.keys=new Set(S.proxies.map(keyOf));ids.forEach(i=>S.sel.delete(i));render()}
+const rank=p=>(p.st==='live'?0:1)*1e9+(p.lat??1e8);
+function view(){
+  const q=$('#q').value.trim().toLowerCase(),ty=$('#ft').value,st=$('#fs').value,ml=+$('#fl').value||0;
+  const v=S.proxies.filter(p=>(!ty||p.type===ty)&&(!st||p.st===st)&&(!ml||(p.lat!=null&&p.lat<=ml))&&(!q||(p.ip+':'+p.port+' '+p.cc+' '+p.src).toLowerCase().includes(q)));
+  const {k,d}=S.sort,nv=x=>x==null||x==='';
+  v.sort((a,b)=>nv(a[k])?(nv(b[k])?0:1):nv(b[k])?-1:(a[k]>b[k]?1:a[k]<b[k]?-1:0)*d);
+  return v;
+}
+
+/* ============ EXPORT / IMPORT ============ */
+function exportList(copy,force,ty){
+  const sc=force||$('#xs').value;
+  const l=S.proxies.filter(p=>(!ty||ty==='all'||p.type===ty)&&(sc==='all'||(sc==='live'?p.st==='live':S.sel.has(p.id))));
+  if(!l.length)return toast(ty?'No live '+(ty==='all'?'':ty+' ')+'proxies yet — run the checker first':'Nothing to export','er');
+  const n=+S.set.exN||0,o=S.set.exOrder;
+  /** Apply the user's "how many" limit and ordering (fastest / random / as found). */
+  const pickN=a=>{let r=[...a];if(o==='rand')r=r.map(p=>[Math.random(),p]).sort((x,y)=>x[0]-y[0]).map(x=>x[1]);else if(o==='fast')r.sort((x,y)=>(x.lat??1e9)-(y.lat??1e9));return n>0?r.slice(0,n):r};
+  const pre=$('#xp').checked,f=p=>(pre?(p.type==='https'?'http':p.type)+'://':'')+p.ip+':'+p.port;
+  if(copy){const r=pickN(l);return navigator.clipboard.writeText(r.map(f).join('\n')).then(()=>toast('Copied '+r.length+' proxies','ok'),()=>toast('Clipboard blocked by browser','er'))}
+  let c=0;
+  if($('#xsep').checked&&!ty)TYPES.forEach(t=>{const x=pickN(l.filter(p=>p.type===t));if(x.length){c+=x.length;dl(sc+'_'+t+'.txt',x.map(f).join('\n'))}});
+  else{const r=pickN(l);c=r.length;dl((ty?sc+'_'+ty:sc)+'_proxies.txt',r.map(f).join('\n'))}
+  toast('Exported '+c+' proxies','ok');
+}
+function importText(text){
+  const dt=$('#it').value;let n=0,t=0;
+  for(const line of text.split(/\r?\n/)){
+    const m=/(?:(https?|socks[45]):\/\/)?((?:\d{1,3}\.){3}\d{1,3}):(\d{1,5})/.exec(line);
+    if(m&&validIP(m[2])&&+m[3]>0&&+m[3]<65536){t++;n+=addProxies([[m[2],+m[3]]],[m[1]||dt],'import')}
+  }
+  toast('Imported '+n+' new of '+t+' found',n?'ok':'er');render();
+}
+
+/* ============ UI ============ */
+let tm=0;const dirty=()=>{if(tm)return;tm=setTimeout(()=>{tm=0;requestAnimationFrame(render)},200)};
+function render(){
+  stats();
+  if(S.tab==='dashboard')return dash();if(S.tab==='sources')return;
+  if(S.tab==='scraper'){
+    $('#stot').textContent=S.proxies.length+' unique proxies';
+    $('#sst').innerHTML=S.sources.map(s=>{const t=S.status[s.id];if(!t)return'';const c=t.st==='ok'?'live':t.st==='fail'?'dead':'pending';
+      return`<tr><td>${esc(s.name)}</td><td class="${c}">${t.st==='ok'?'✓ ok':t.st==='fail'?'✗ '+esc(t.err):t.st}</td><td>${t.n??''}</td><td>${t.add??''}</td><td>${t.ms??''}</td></tr>`}).join('');
+    $('#log').textContent=S.logs.join('\n');
+  }
+  if(S.tab==='results')table();
+}
+function dash(){
+  let live=0,dead=0,pend=0,sum=0;const bt={};TYPES.forEach(t=>bt[t]={n:0,l:0});
+  for(const p of S.proxies){const b=bt[p.type];b.n++;if(p.st==='live'){live++;sum+=p.lat||0;b.l++}else if(p.st==='dead')dead++;else pend++}
+  const el=(performance.now()-ck.t0)/1e3,sp=ck.run&&ck.done?ck.done/el:0,pc=ck.total?Math.round(ck.done/ck.total*100):0;
+  const st=Object.values(S.status),ok=st.filter(x=>x.st==='ok').length,fail=st.filter(x=>x.st==='fail').length,run=st.length-ok-fail;
+  $('#dphase').textContent=ck.pause?'⏸ Paused':ck.run?'Checking proxies…':scraping?'Scraping sources…':'Idle';
+  $('#dsub').textContent=ck.run?`${ck.done} of ${ck.total} checked · ${sp.toFixed(1)}/s · ETA ${sp?Math.ceil((ck.total-ck.done)/sp)+' s':'–'}`:S.proxies.length?`${live} live out of ${live+dead} checked`:'Press ▶ Start to scrape sources and check them';
+  $('#dpb').style.width=pc+'%';
+  const T=[['Scraped',S.proxies.length,''],['Live',live,'live'],['Dead',dead,'dead'],['Pending',pend,'pending'],['Avg latency',live?Math.round(sum/live)+' ms':'–',''],['Success rate',live+dead?Math.round(live/(live+dead)*100)+'%':'–','']];
+  $('#dtiles').innerHTML=T.map(([a,b,c])=>`<div class="t"><b class="${c}">${b}</b><small>${a}</small></div>`).join('');
+  bt.all={n:S.proxies.length,l:live};
+  $$('#dtype .mrow').forEach(r=>{const b=bt[r.dataset.ty];r.querySelector('i').style.width=(b.n?b.l/b.n*100:0)+'%';r.querySelector('.cnt').textContent=b.l+' live / '+b.n;r.querySelectorAll('button').forEach(x=>x.disabled=!b.l)});
+  $$('#nchips .chip').forEach(c=>c.classList.toggle('on',+c.dataset.n===+S.set.exN));
+  $('#dsrc').innerHTML=st.length?`<div class="mrow"><b class="live">${ok}</b> succeeded</div><div class="mrow"><b class="dead">${fail}</b> failed</div><div class="mrow"><b class="pending">${run}</b> running / waiting</div><div class="mu">Details in the Scraper tab</div>`:'<div class="empty">No scrape yet</div>';
+  $('#dtop').innerHTML=S.proxies.filter(p=>p.st==='live').sort((a,b)=>a.lat-b.lat).slice(0,8).map(p=>`<tr><td>${p.ip}:${p.port}</td><td><span class="tb ${p.type}">${p.type}</span></td><td>${p.lat} ms</td><td>${esc(p.cc||'–')}</td></tr>`).join('')||'<tr><td class="empty">No live proxies yet</td></tr>';
+}
+function stats(){
+  let live=0,dead=0,sum=0;for(const p of S.proxies){if(p.st==='live'){live++;sum+=p.lat||0}else if(p.st==='dead')dead++}
+  const el=(performance.now()-ck.t0)/1e3,sp=ck.run&&ck.done?ck.done/el:0,pc=ck.total?Math.round(ck.done/ck.total*100):0;
+  const T=[['Scraped',S.proxies.length],['Checked',live+dead],['Live',live],['Dead',dead],['Avg latency',live?Math.round(sum/live)+' ms':'–'],['Speed',sp.toFixed(1)+'/s'],['ETA',ck.run&&sp?Math.ceil((ck.total-ck.done)/sp)+' s':'–']];
+  $('#stats').innerHTML=T.map(([a,b])=>`<div class="t"><b>${b}</b><small>${a}</small></div>`).join('');
+  $('#pb').style.width=pc+'%';$('#pills').innerHTML=`<span class="pill">${S.proxies.length} found</span><span class="pill live">${live} live</span>`;
+  $('#mini').textContent=`${S.proxies.length} scraped · ${live} live · ${pc}%`+(ck.pause?' · paused':'');
+}
+function table(){
+  const v=view(),n=+S.set.page,pages=Math.max(1,Math.ceil(v.length/n));S.page=Math.min(S.page,pages-1);
+  $('#tb').innerHTML=v.slice(S.page*n,S.page*n+n).map(p=>`<tr><td><input type="checkbox" class="rc" data-id="${p.id}" ${S.sel.has(p.id)?'checked':''}></td><td>${p.ip}</td><td>${p.port}</td><td><span class="tb ${p.type}">${p.type}</span></td><td class="${p.st}">● ${p.st}</td><td>${p.lat??'–'}</td><td>${esc(p.cc||'–')}</td><td>${esc(p.anon||'–')}</td><td>${esc(p.src)}</td></tr>`).join('');
+  if(!v.length)$('#tb').innerHTML='<tr><td colspan="9" class="empty">'+(S.proxies.length?'No proxies match your filters.':'No proxies yet. Press ▶ Start to scrape the sources, or import your own list below.')+'</td></tr>';
+  $('#pg').textContent=`${v.length} rows · page ${S.page+1}/${pages} · ${S.sel.size} selected`;
+  $$('#th th[data-k]').forEach(th=>th.dataset.a=th.dataset.k===S.sort.k?(S.sort.d>0?' ▲':' ▼'):'');
+  S.view=v;
+}
+const TL={http:'HTTP',https:'HTTPS',socks4:'SOCKS4',socks5:'SOCKS5'};
+function sCount(){
+  $('#scount').textContent=S.sources.filter(s=>s.on).length+' of '+S.sources.length+' enabled · '+S.srcSel.size+' selected';
+  const L=S.srcSel.size?S.sources.filter(s=>S.srcSel.has(s.id)):S.sources;
+  $('#bulk').innerHTML=TYPES.map(t=>{const n=L.filter(s=>s.types.includes(t)).length;return`<button class="chip ${n&&n===L.length?'on':n?'part':''}" data-t="${t}">${TL[t]}</button>`}).join('')+'<button class="chip" data-t="all">All types</button><span class="mu">→ applies to '+(S.srcSel.size?S.srcSel.size+' selected sources':'all '+S.sources.length+' sources')+'</span>';
+}
+/** One click: toggle a type on every source (or only ticked ones). "all" = enable all 4 types. */
+function bulkTypes(t){
+  const L=S.srcSel.size?S.sources.filter(s=>S.srcSel.has(s.id)):S.sources;
+  if(t==='all')L.forEach(s=>s.types=[...TYPES]);
+  else{const every=L.every(s=>s.types.includes(t));L.forEach(s=>{const a=every?s.types.filter(x=>x!==t):[...new Set([...s.types,t])];if(a.length)s.types=a})}
+  save();renderSources();
+}
+function renderSources(){
+  const q=($('#sq').value||'').toLowerCase();sCount();
+  $('#srcs').innerHTML=S.sources.filter(s=>!q||(s.name+s.url).toLowerCase().includes(q)).map(s=>`<div class="card src" data-id="${s.id}">
+<div class="row"><input type="checkbox" class="ssel" title="Select for Scrape Selected" ${S.srcSel.has(s.id)?'checked':''}><input class="f nm" data-f="name" value="${esc(s.name)}" aria-label="Name"><label><input type="checkbox" class="f" data-f="on" ${s.on?'checked':''}>Enabled</label><button class="b er sdel" aria-label="Delete source">✕</button></div>
+<input class="f" data-f="url" value="${esc(s.url)}" placeholder="https://…" aria-label="URL" style="margin-bottom:8px">
+<div class="row"><span class="mu">Proxy types:</span>${TYPES.map(t=>`<button class="chip ${s.types.includes(t)?'on':''}" data-t="${t}">${TL[t]}</button>`).join('')}</div>
+<details><summary class="mu">Advanced: format &amp; path</summary><div class="row"><select class="f" data-f="fmt">${['text','json','html'].map(t=>`<option ${t===s.fmt?'selected':''}>${t}</option>`).join('')}</select><input class="f" data-f="path" value="${esc(s.path||'')}" placeholder="JSON path / HTML regex" aria-label="Path"></div></details></div>`).join('')||'<div class="card empty">No sources match your search.</div>';
+}
+
+/* ============ EVENTS ============ */
+function bind(){
+  $('#nav').onclick=e=>{const b=e.target.closest('button');if(!b)return;S.tab=b.dataset.t;$$('#nav button').forEach(x=>x.classList.toggle('on',x===b));$$('.tab').forEach(x=>x.classList.toggle('on',x.id==='t-'+S.tab));render()};
+  // settings (any element with data-s)
+  $$('[data-s]').forEach(el=>{const k=el.dataset.s;if(el.type==='checkbox')el.checked=S.set[k];else el.value=S.set[k];
+    el.onchange=()=>{let x=el.type==='checkbox'?el.checked:el.type==='number'?+el.value:el.value;
+      if(el.type==='number'){x=Math.min(+el.max,Math.max(+el.min,x||+el.min));el.value=x}
+      S.set[k]=x;if(k==='page')S.page=0;save();render()}});
+  // sources
+  const sr=$('#srcs');
+  sr.onchange=e=>{const c=e.target.closest('.src');if(!c)return;const s=S.sources.find(x=>x.id===c.dataset.id);
+    if(e.target.classList.contains('ssel'))e.target.checked?S.srcSel.add(s.id):S.srcSel.delete(s.id);
+    else if(e.target.dataset.f){s[e.target.dataset.f]=e.target.type==='checkbox'?e.target.checked:e.target.value.trim();save()}};
+  sr.onclick=e=>{const c=e.target.closest('.src');if(!c)return;const x=S.sources.find(v=>v.id===c.dataset.id),t=e.target.dataset.t;
+    if(e.target.classList.contains('chip')){const a=x.types.includes(t)?x.types.filter(v=>v!==t):[...x.types,t];if(!a.length)return toast('Pick at least one type','er');x.types=a;e.target.classList.toggle('on');save()}
+    else if(e.target.classList.contains('sdel')){S.sources=S.sources.filter(v=>v!==x);save();renderSources()}};
+  $('#sadd').onclick=()=>{S.sources.unshift({id:uid(),name:'New source',url:'',type:'http',fmt:'text',path:'',on:true});save();renderSources()};
+  $('#ssall').onclick=()=>{S.sources.forEach(s=>S.srcSel.add(s.id));renderSources()};
+  $('#ssnone').onclick=()=>{S.srcSel.clear();renderSources()};
+  $('#sexp').onclick=()=>dl('proxyhunter-sources.json',JSON.stringify(S.sources,null,2));
+  $('#simp').onclick=()=>$('#sfile').click();
+  $('#sfile').onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());if(!Array.isArray(j))throw Error('Expected an array');
+    S.sources=j.filter(x=>x&&x.url).map(x=>({id:uid(),name:x.name||x.url,url:x.url,types:normTypes(x),fmt:['text','json','html'].includes(x.fmt)?x.fmt:'text',path:x.path||'',on:x.on!==false}));
+    save();renderSources();toast('Imported '+S.sources.length+' sources','ok')}catch(err){toast('Import failed: '+err.message,'er')}e.target.value=''};
+  $('#srst').onclick=()=>{if(confirm('Replace all sources with the defaults?')){S.sources=defSources();S.srcSel.clear();save();renderSources()}};
+  // scraper / checker / global controls
+  $('#sall').onclick=()=>{halt=false;scrape(S.sources.filter(s=>s.on))};
+  $('#ssel').onclick=()=>{halt=false;scrape(S.sources.filter(s=>S.srcSel.has(s.id)))};
+  $('#cgo').onclick=()=>{halt=false;check(false)};
+  $('#call').onclick=()=>{halt=false;check(true)};
+  $('#cpause').onclick=$('#apause').onclick=togglePause;
+  $('#cstop').onclick=$('#astop').onclick=stopAll;
+  $('#go').onclick=startAll;
+  $('#autob').onclick=()=>{autoOn=!autoOn;$('#autob').textContent='Auto: '+(autoOn?'on':'off');if(autoOn)autoLoop()};
+  $('#cpw').onclick=()=>navigator.clipboard.writeText($('#wk').textContent).then(()=>toast('Worker code copied','ok'),()=>toast('Clipboard blocked','er'));
+  $('#theme').onclick=()=>{S.set.theme=S.set.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=S.set.theme;save()};
+  document.addEventListener('keydown',e=>{if(e.ctrlKey&&e.key==='Enter'){e.preventDefault();startAll()}});
+  // results
+  ['q','ft','fs','fl'].forEach(id=>$('#'+id).oninput=()=>{S.page=0;table()});
+  $('#th').onclick=e=>{const k=e.target.dataset?.k;if(!k)return;S.sort=S.sort.k===k?{k,d:-S.sort.d}:{k,d:1};table()};
+  $('#tb').onchange=e=>{if(e.target.classList.contains('rc')){const id=+e.target.dataset.id;e.target.checked?S.sel.add(id):S.sel.delete(id);table()}};
+  $('#sp').onchange=e=>{const n=+S.set.page;S.view.slice(S.page*n,S.page*n+n).forEach(p=>e.target.checked?S.sel.add(p.id):S.sel.delete(p.id));table()};
+  $('#pv').onclick=()=>{S.page=Math.max(0,S.page-1);table()};$('#nx').onclick=()=>{S.page++;table()};
+  $('#selv').onclick=()=>{view().forEach(p=>S.sel.add(p.id));table()};
+  $('#seln').onclick=()=>{S.sel.clear();table()};
+  $('#delsel').onclick=()=>S.sel.size?removeIds(new Set(S.sel)):toast('Nothing selected','er');
+  $('#deldead').onclick=()=>removeIds(new Set(S.proxies.filter(p=>p.st==='dead').map(p=>p.id)));
+  $('#deldup').onclick=()=>{const m=new Map();for(const p of S.proxies){const k=p.ip+':'+p.port,o=m.get(k);if(!o||rank(p)<rank(o))m.set(k,p)}
+    const keep=new Set([...m.values()].map(p=>p.id));removeIds(new Set(S.proxies.filter(p=>!keep.has(p.id)).map(p=>p.id)))};
+  $('#keepn').onclick=()=>{const n=Math.max(1,+$('#kn').value||1),keep=new Set(S.proxies.filter(p=>p.st==='live').sort((a,b)=>a.lat-b.lat).slice(0,n).map(p=>p.id));
+    if(confirm('Keep the '+keep.size+' fastest live proxies and delete everything else?'))removeIds(new Set(S.proxies.filter(p=>!keep.has(p.id)).map(p=>p.id)))};
+  $('#xdl').onclick=()=>exportList(false);$('#xcp').onclick=()=>exportList(true);
+  $('#impb').onclick=()=>{importText($('#imp').value);$('#imp').value=''};
+  $('#impf').onclick=()=>$('#ifile').click();
+  $('#ifile').onchange=async e=>{try{importText(await e.target.files[0].text())}catch(err){toast('Could not read file','er')}e.target.value=''};
+  $('#wipe').onclick=()=>{if(confirm('Delete all proxies?'))removeIds(new Set(S.proxies.map(p=>p.id)))};
+  $('#dgo').onclick=startAll;$('#dpause').onclick=togglePause;$('#dstop').onclick=stopAll;$('#dx').onclick=()=>exportList(false,'live');$('#dc').onclick=()=>exportList(true,'live');
+  $('#bulk').onclick=e=>{const t=e.target.dataset.t;if(t)bulkTypes(t)};
+  $('#sfail').onclick=()=>{const bad=S.sources.filter(x=>S.status[x.id]?.st==='fail');if(!bad.length)return toast('No failed sources — run a scrape first','er');S.sources=S.sources.filter(x=>!bad.includes(x));save();renderSources();toast('Removed '+bad.length+' failed sources','ok')};
+  $('#dtype').innerHTML=['all',...TYPES].map(t=>`<div class="mrow" data-ty="${t}"><span class="tb ${t}">${t==='all'?'all types':t}</span><div class="bar"><i style="background:var(--ok)"></i></div><span class="mu cnt"></span><button class="b xt" data-x="dl" title="Download .txt">⬇ .txt</button><button class="b xt" data-x="cp" title="Copy to clipboard">📋</button></div>`).join('');
+  $('#dtype').onclick=e=>{const b=e.target.closest('button'),r=e.target.closest('.mrow');if(b&&r)exportList(b.dataset.x==='cp','live',r.dataset.ty)};
+  $('#nchips').onclick=e=>{const n=e.target.dataset.n;if(n==null)return;S.set.exN=+n;$('[data-s=exN]').value=+n;save();render()};
+  $('#qx').onclick=()=>exportList(false,'live');$('#qc').onclick=()=>exportList(true,'live');
+  $('#sq').oninput=renderSources;sr.addEventListener('change',sCount);
+  $('#son').onclick=()=>{S.sources.forEach(x=>x.on=true);save();renderSources()};$('#soff').onclick=()=>{S.sources.forEach(x=>x.on=false);save();renderSources()};
+  addEventListener('error',e=>toast('Error: '+e.message,'er'));
+  addEventListener('unhandledrejection',e=>toast('Error: '+(e.reason?.message||e.reason),'er'));
+}
+document.documentElement.dataset.theme=S.set.theme;
+bind();renderSources();render();
+</script>
+</body>
+</html>
